@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>סינבון – דשבורד</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; background: #f0f2f5; color: #1a1a2e; direction: rtl; }
+.header { background: #1B2A4A; color: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+.header h1 { font-size: 20px; }
+.header span { font-size: 13px; opacity: 0.7; }
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 20px 24px 0; }
+.kpi { background: white; border-radius: 10px; padding: 16px; border: 1px solid #e8eef6; }
+.kpi-label { font-size: 12px; color: #888; margin-bottom: 6px; }
+.kpi-val { font-size: 26px; font-weight: bold; color: #1B2A4A; }
+.kpi-val.green { color: #1A5C38; }
+.kpi-val.blue { color: #185FA5; }
+.main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px 24px; }
+.panel { background: white; border-radius: 10px; padding: 16px; border: 1px solid #e8eef6; }
+.panel h2 { font-size: 14px; color: #555; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.item-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
+.item-row:last-child { border-bottom: none; }
+.item-name { flex: 1; }
+.item-qty { color: #888; min-width: 50px; text-align: center; }
+.bar-wrap { width: 80px; height: 6px; background: #f0f2f5; border-radius: 3px; }
+.bar { height: 6px; border-radius: 3px; background: #378ADD; }
+.item-cost { font-weight: bold; min-width: 70px; text-align: left; direction: ltr; }
+.log-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #f5f5f5; font-size: 12px; }
+.log-row:last-child { border-bottom: none; }
+.log-who { color: #888; }
+.log-what { font-weight: bold; }
+.log-cost { color: #1A5C38; font-weight: bold; direction: ltr; }
+.badge { font-size: 10px; padding: 2px 7px; border-radius: 20px; margin-left: 6px; }
+.recipe { background: #E1F5EE; color: #085041; }
+.unit { background: #E6F1FB; color: #0C447C; }
+.refresh-btn { background: #1B2A4A; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+.last-update { font-size: 11px; color: #aaa; text-align: center; padding: 8px; }
+.empty { color: #aaa; font-size: 13px; text-align: center; padding: 20px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🥐 סינבון באר שבע – דשבורד הוצאות</h1>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span id="last-update">טוען...</span>
+    <button class="refresh-btn" onclick="loadData()">רענן</button>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="kpi-label">סה"כ הוצאות חודש</div><div class="kpi-val" id="kpi-total">—</div></div>
+  <div class="kpi"><div class="kpi-label">אירועים שנרשמו</div><div class="kpi-val green" id="kpi-count">—</div></div>
+  <div class="kpi"><div class="kpi-label">פריט יקר ביותר</div><div class="kpi-val blue" id="kpi-top">—</div></div>
+  <div class="kpi"><div class="kpi-label">עדכון אחרון</div><div class="kpi-val" id="kpi-last" style="font-size:16px">—</div></div>
+</div>
+
+<div class="main">
+  <div class="panel">
+    <h2>📦 פירוט לפי פריט</h2>
+    <div id="item-list"><div class="empty">אין נתונים עדיין</div></div>
+  </div>
+  <div class="panel">
+    <h2>🕐 לוג אחרון</h2>
+    <div id="log-list"><div class="empty">אין נתונים עדיין</div></div>
+  </div>
+</div>
+
+<div class="last-update" id="footer">מתעדכן כל 30 שניות אוטומטית</div>
+
+<script>
+const SERVER = '';
+const COLORS = ['#378ADD','#1D9E75','#D85A30','#D4537E','#639922','#BA7517','#534AB7'];
+
+function fmt(n){ return '₪' + Math.round(n).toLocaleString('he-IL'); }
+
+async function loadData(){
+  try {
+    const [summary, log] = await Promise.all([
+      fetch(SERVER + '/summary').then(r => r.json()),
+      fetch(SERVER + '/log').then(r => r.json())
+    ]);
+
+    const now = new Date();
+    document.getElementById('last-update').textContent =
+      'עודכן: ' + now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+
+    let totalCost = 0;
+    Object.values(summary).forEach(v => totalCost += v.cost);
+    document.getElementById('kpi-total').textContent = fmt(totalCost);
+    document.getElementById('kpi-count').textContent = log.length;
+
+    const topItem = Object.entries(summary).sort((a,b) => b[1].cost - a[1].cost)[0];
+    document.getElementById('kpi-top').textContent = topItem ? topItem[0] : '—';
+
+    if(log.length > 0){
+      const last = log[log.length-1];
+      const t = new Date(last.time);
+      document.getElementById('kpi-last').textContent =
+        t.getHours().toString().padStart(2,'0') + ':' + t.getMinutes().toString().padStart(2,'0');
+    }
+
+    const items = Object.entries(summary).sort((a,b) => b[1].cost - a[1].cost);
+    const maxCost = items.length > 0 ? items[0][1].cost : 1;
+    const itemHtml = items.map(([ label, data ], i) => {
+      const pct = Math.round((data.cost / maxCost) * 100);
+      co
