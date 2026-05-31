@@ -30,7 +30,9 @@ body { font-family: Arial, sans-serif; background: #f0f2f5; color: #1a1a2e; dire
 .log-who { color: #888; }
 .log-what { font-weight: bold; }
 .log-cost { color: #1A5C38; font-weight: bold; direction: ltr; }
-.refresh-btn { background: white; color: #1B2A4A; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; }
+.btn { border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; }
+.btn-refresh { background: white; color: #1B2A4A; }
+.btn-reset { background: #8B1A1A; color: white; }
 .empty { color: #aaa; font-size: 13px; text-align: center; padding: 20px; }
 .footer { font-size: 11px; color: #aaa; text-align: center; padding: 12px; }
 </style>
@@ -39,9 +41,10 @@ body { font-family: Arial, sans-serif; background: #f0f2f5; color: #1a1a2e; dire
 
 <div class="header">
   <h1>🥐 סינבון באר שבע – דשבורד הוצאות</h1>
-  <div style="display:flex;align-items:center;gap:12px">
+  <div style="display:flex;align-items:center;gap:10px">
     <span id="last-update" style="font-size:13px;opacity:0.7">טוען...</span>
-    <button class="refresh-btn" onclick="loadData()">רענן ↺</button>
+    <button class="btn btn-reset" onclick="resetData()">אפס חודש 🗑</button>
+    <button class="btn btn-refresh" onclick="loadData()">רענן ↺</button>
   </div>
 </div>
 
@@ -68,68 +71,4 @@ body { font-family: Arial, sans-serif; background: #f0f2f5; color: #1a1a2e; dire
 <script>
 const COLORS = ['#378ADD','#1D9E75','#D85A30','#D4537E','#639922','#BA7517','#534AB7'];
 
-function fmt(n){ return '₪' + Math.round(n).toLocaleString('he-IL'); }
-
-async function loadData(){
-  try {
-    const [summary, log] = await Promise.all([
-      fetch('/summary').then(r => r.json()),
-      fetch('/log').then(r => r.json())
-    ]);
-
-    const now = new Date();
-    document.getElementById('last-update').textContent =
-      'עודכן: ' + now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-
-    let totalCost = 0;
-    Object.values(summary).forEach(v => totalCost += v.cost);
-    document.getElementById('kpi-total').textContent = fmt(totalCost);
-    document.getElementById('kpi-count').textContent = log.length;
-
-    const entries = Object.entries(summary);
-    const topItem = entries.sort((a,b) => b[1].cost - a[1].cost)[0];
-    document.getElementById('kpi-top').textContent = topItem ? topItem[0] : '—';
-
-    if(log.length > 0){
-      const last = log[log.length-1];
-      const t = new Date(last.time);
-      document.getElementById('kpi-last').textContent =
-        t.getHours().toString().padStart(2,'0') + ':' + t.getMinutes().toString().padStart(2,'0');
-    }
-
-    const sorted = Object.entries(summary).sort((a,b) => b[1].cost - a[1].cost);
-    const maxCost = sorted.length > 0 ? sorted[0][1].cost : 1;
-    const itemHtml = sorted.map(([label, data], i) => {
-      const pct = Math.round((data.cost / maxCost) * 100);
-      return `<div class="item-row">
-        <span class="item-name">${label}</span>
-        <span class="item-qty">${data.qty} יח'</span>
-        <div class="bar-wrap"><div class="bar" style="width:${pct}%;background:${COLORS[i % COLORS.length]}"></div></div>
-        <span class="item-cost">${fmt(data.cost)}</span>
-      </div>`;
-    });
-    document.getElementById('item-list').innerHTML =
-      itemHtml.length > 0 ? itemHtml.join('') : '<div class="empty">אין נתונים עדיין</div>';
-
-    const logHtml = [...log].reverse().slice(0,10).map(l => {
-      const t = new Date(l.time);
-      const timeStr = t.getHours().toString().padStart(2,'0') + ':' + t.getMinutes().toString().padStart(2,'0');
-      return `<div class="log-row">
-        <span class="log-who">${l.from.replace('whatsapp:+972','05')} ${timeStr}</span>
-        <span class="log-what">${l.label} × ${l.qty}</span>
-        <span class="log-cost">${fmt(l.cost)}</span>
-      </div>`;
-    });
-    document.getElementById('log-list').innerHTML =
-      logHtml.length > 0 ? logHtml.join('') : '<div class="empty">אין נתונים עדיין</div>';
-
-  } catch(e) {
-    document.getElementById('footer').textContent = 'שגיאה בטעינה – בדוק חיבור';
-  }
-}
-
-loadData();
-setInterval(loadData, 30000);
-</script>
-</body>
-</html>
+function fmt(n){ return '₪' +
