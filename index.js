@@ -47,9 +47,9 @@ const UNITS = {
 
 function getMonth() {
   const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  const israelTime = new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' }));
+  return israelTime.getFullYear() + '-' + String(israelTime.getMonth()+1).padStart(2,'0');
 }
-
 app.post('/webhook', async (req, res) => {
   const body = req.body.Body || '';
   const from = req.body.From || '';
