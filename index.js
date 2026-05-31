@@ -1,9 +1,31 @@
 const express = require('express');
 const path = require('path');
+const { Pool } = require('pg');
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS events (
+      id SERIAL PRIMARY KEY,
+      from_number TEXT,
+      text TEXT,
+      label TEXT,
+      qty INTEGER,
+      cost NUMERIC,
+      month TEXT,
+      time TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+}
+initDB();
 
 const RECIPES = {
   'בצק':      { label: 'הכנת בצק',       costPerUnit: 177.82 },
@@ -23,9 +45,12 @@ const UNITS = {
   'שוקולד בקבוק': { label: 'בקבוק שוקולד',   price: 30.27 },
 };
 
-let log = [];
+function getMonth() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
 
-app.post('/webhook', (req, res) => {
+app.post('/webhook', async (req, res) => {
   const body = req.body.Body || '';
   const from = req.body.From || '';
   const text = body.trim();
@@ -50,7 +75,11 @@ app.post('/webhook', (req, res) => {
     const label = found.type === 'recipe'
       ? RECIPES[found.key].label
       : UNITS[found.key].label;
-    log.push({ from, text, label, qty: found.qty, cost, time: new Date().toISOString() });
+    const month = getMonth();
+    await pool.query(
+      'INSERT INTO events (from_number, text, label, qty, cost, month) VALUES ($1,$2,$3,$4,$5,$6)',
+      [from, text, label, found.qty, cost, month]
+    );
     reply = `✅ נרשם: ${label} × ${found.qty} = ${Math.round(cost)} ₪`;
   } else {
     reply = `❌ לא זיהיתי. נסה: "בצק 2", "קינמון 1", "קרמל 3", "קפה 2"`;
@@ -60,16 +89,39 @@ app.post('/webhook', (req, res) => {
   res.send(`<Response><Message>${reply}</Message></Response>`);
 });
 
-app.get('/api/log', (req, res) => res.json(log));
-app.post('/api/reset', (req, res) => { log = []; res.json({ ok: true }); });
-app.get('/api/summary', (req, res) => {
+app.get('/api/months', async (req, res) => {
+  const result = await pool.query(
+    'SELECT DISTINCT month FROM events ORDER BY month DESC'
+  );
+  res.json(result.rows.map(r => r.month));
+});
+
+app.get('/api/log', async (req, res) => {
+  const month = req.query.month || getMonth();
+  const result = await pool.query(
+    'SELECT * FROM events WHERE month=$1 ORDER BY time DESC LIMIT 50',
+    [month]
+  );
+  res.json(result.rows);
+});
+
+app.get('/api/summary', async (req, res) => {
+  const month = req.query.month || getMonth();
+  const result = await pool.query(
+    'SELECT label, SUM(qty) as qty, SUM(cost) as cost FROM events WHERE month=$1 GROUP BY label ORDER BY cost DESC',
+    [month]
+  );
   const summary = {};
-  log.forEach(e => {
-    if (!summary[e.label]) summary[e.label] = { qty: 0, cost: 0 };
-    summary[e.label].qty += e.qty;
-    summary[e.label].cost += e.cost;
+  result.rows.forEach(r => {
+    summary[r.label] = { qty: parseInt(r.qty), cost: parseFloat(r.cost) };
   });
   res.json(summary);
+});
+
+app.post('/api/reset', async (req, res) => {
+  const month = req.query.month || getMonth();
+  await pool.query('DELETE FROM events WHERE month=$1', [month]);
+  res.json({ ok: true });
 });
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
