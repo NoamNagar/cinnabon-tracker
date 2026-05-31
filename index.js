@@ -80,7 +80,7 @@ app.post('/webhook', async (req, res) => {
       'INSERT INTO events (from_number, text, label, qty, cost, month) VALUES ($1,$2,$3,$4,$5,$6)',
       [from, text, label, found.qty, cost, month]
     );
-    reply = `✅ נרשם: ${label} × ${found.qty} = ${Math.round(cost)} ₪`;
+    reply = `✅ נרשם: ${label} × ${found.qty}`;
   } else {
     reply = `❌ לא זיהיתי. נסה: "בצק 2", "קינמון 1", "קרמל 3", "קפה 2"`;
   }
