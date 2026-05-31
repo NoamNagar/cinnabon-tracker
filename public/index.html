@@ -8,9 +8,11 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Arial,sans-serif;background:#f0f2f5;direction:rtl;color:#1a1a2e}
-.header{background:#1B2A4A;color:white;padding:14px 24px;display:flex;justify-content:space-between;align-items:center}
+.header{background:#1B2A4A;color:white;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
 .header h1{font-size:18px;font-weight:bold}
-.btn{border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:bold;margin-right:6px}
+.header-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{border:none;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:bold}
+.month-select{padding:7px 12px;border-radius:8px;border:none;font-size:13px;font-weight:bold;background:#2E4A7A;color:white;cursor:pointer}
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px 24px 0}
 .kpi{background:white;border-radius:10px;padding:14px;border:1px solid #e8eef6}
 .kpi-label{font-size:11px;color:#888;margin-bottom:5px}
@@ -20,7 +22,7 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;direction:rtl;color:#1a1a2e
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
 .panel{background:white;border-radius:10px;padding:14px;border:1px solid #e8eef6}
-.panel h3{font-size:13px;color:#555;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.panel h3{font-size:13px;color:#555;margin-bottom:10px}
 .item-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:12px}
 .item-row:last-child{border-bottom:none}
 .item-name{flex:1}
@@ -35,27 +37,26 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;direction:rtl;color:#1a1a2e
 .log-cost{color:#1A5C38;font-weight:bold;direction:ltr;min-width:60px;text-align:left}
 .ingr-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f5f5f5;font-size:12px}
 .ingr-row:last-child{border-bottom:none}
-.ingr-name{color:#1a1a2e}
 .ingr-kg{color:#185FA5;font-weight:bold;direction:ltr}
+.chart-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px}
+.chart-label{min-width:100px;text-align:right;color:#555}
+.chart-bar-outer{flex:1;background:#f0f2f5;border-radius:4px;height:18px}
+.chart-bar-inner{height:18px;border-radius:4px;display:flex;align-items:center;padding-right:6px;font-size:10px;color:white;font-weight:bold;min-width:20px}
 .empty{color:#aaa;font-size:12px;text-align:center;padding:16px}
 .footer{font-size:11px;color:#aaa;text-align:center;padding:10px}
-.badge{font-size:10px;padding:2px 7px;border-radius:20px;margin-left:4px}
-.badge-recipe{background:#E1F5EE;color:#085041}
-.badge-unit{background:#E6F1FB;color:#0C447C}
 .green{color:#1A5C38}
-.blue{color:#185FA5}
-.chart-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px}
-.chart-label{min-width:90px;text-align:right;color:#555}
-.chart-bar-outer{flex:1;background:#f0f2f5;border-radius:4px;height:16px}
-.chart-bar-inner{height:16px;border-radius:4px;display:flex;align-items:center;padding-right:6px;font-size:10px;color:white;font-weight:bold;min-width:20px}
+.month-badge{background:#2E4A7A;color:white;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:bold}
 </style>
 </head>
 <body>
 
 <div class="header">
   <h1>🥐 סינבון באר שבע – דשבורד הוצאות</h1>
-  <div style="display:flex;align-items:center;gap:4px">
-    <span id="last-update" style="font-size:12px;opacity:0.7;margin-left:10px">טוען...</span>
+  <div class="header-left">
+    <span id="last-update" style="font-size:12px;opacity:0.7">טוען...</span>
+    <select class="month-select" id="month-select" onchange="changeMonth()">
+      <option value="">טוען חודשים...</option>
+    </select>
     <button class="btn" style="background:#8B1A1A;color:white" onclick="resetData()">אפס חודש 🗑</button>
     <button class="btn" style="background:white;color:#1B2A4A" onclick="loadData()">רענן ↺</button>
   </div>
@@ -64,8 +65,8 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;direction:rtl;color:#1a1a2e
 <div class="kpi-grid">
   <div class="kpi"><div class="kpi-label">סה"כ הוצאות חודש</div><div class="kpi-val" id="kpi-total">—</div></div>
   <div class="kpi"><div class="kpi-label">אירועים שנרשמו</div><div class="kpi-val green" id="kpi-count">—</div></div>
-  <div class="kpi"><div class="kpi-label">פריט יקר ביותר</div><div class="kpi-val blue" style="font-size:15px" id="kpi-top">—</div></div>
-  <div class="kpi"><div class="kpi-label">עדכון אחרון</div><div class="kpi-val" style="font-size:15px" id="kpi-last">—</div></div>
+  <div class="kpi"><div class="kpi-label">פריט יקר ביותר</div><div class="kpi-val" style="font-size:15px" id="kpi-top">—</div></div>
+  <div class="kpi"><div class="kpi-label">חודש נוכחי</div><div class="kpi-val" style="font-size:15px" id="kpi-month">—</div></div>
 </div>
 
 <div class="section">
@@ -89,20 +90,11 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;direction:rtl;color:#1a1a2e
 </div>
 
 <div class="section">
-  <div class="section-title">🧪 חומרי גלם שנצרכו החודש</div>
+  <div class="section-title">🧪 חומרי גלם שנצרכו</div>
   <div class="grid3">
-    <div class="panel">
-      <h3>🌾 חומרי אפייה</h3>
-      <div id="ingr-baking"></div>
-    </div>
-    <div class="panel">
-      <h3>🍬 ממתקים ותוספות</h3>
-      <div id="ingr-sweet"></div>
-    </div>
-    <div class="panel">
-      <h3>🥛 שומנים ונוזלים</h3>
-      <div id="ingr-fat"></div>
-    </div>
+    <div class="panel"><h3>🌾 חומרי אפייה</h3><div id="ingr-baking"></div></div>
+    <div class="panel"><h3>🍬 ממתקים ותוספות</h3><div id="ingr-sweet"></div></div>
+    <div class="panel"><h3>🥛 שומנים ונוזלים</h3><div id="ingr-fat"></div></div>
   </div>
 </div>
 
@@ -110,151 +102,147 @@ body{font-family:Arial,sans-serif;background:#f0f2f5;direction:rtl;color:#1a1a2e
 
 <script>
 var COLORS=['#378ADD','#1D9E75','#D85A30','#D4537E','#639922','#BA7517','#534AB7','#993C1D'];
+var currentMonth='';
 
-var INGR_PER_UNIT = {
-  'בצק': {
-    'קמח': 9.8, 'מרגרינה': 1.14, 'שמרים': 0.09,
-    'תמצית וניל': 0.01, 'תמצית לימון': 0.01
-  },
-  'קינמון': {
-    'סוכר חום': 12.5, 'קינמון': 1.3
-  },
-  'פרוסטינג': {
-    'מרגרינה': 3.75, 'גבינת שמנת': 4.0, 'אבקת סוכר': 6.25
-  },
-  'שוקולד': {
-    'מרגרינה': 4.1, 'קקאו': 1.4, 'סוכר לבן': 7.0
-  }
+var MONTH_NAMES={
+  '01':'ינואר','02':'פברואר','03':'מרץ','04':'אפריל','05':'מאי','06':'יוני',
+  '07':'יולי','08':'אוגוסט','09':'ספטמבר','10':'אוקטובר','11':'נובמבר','12':'דצמבר'
 };
 
-var RECIPE_LABELS = {
-  'הכנת בצק': 'בצק',
-  'תערובת קינמון': 'קינמון',
-  'פרוסטינג': 'פרוסטינג',
-  'שוקולד': 'שוקולד'
+function monthLabel(m){
+  if(!m) return '';
+  var parts=m.split('-');
+  return MONTH_NAMES[parts[1]]+' '+parts[0];
+}
+
+var INGR_PER_UNIT={
+  'הכנת בצק':      {'קמח':9.8,'מרגרינה':1.14,'שמרים':0.09,'תמצית וניל':0.01,'תמצית לימון':0.01},
+  'תערובת קינמון': {'סוכר חום':12.5,'קינמון':1.3},
+  'פרוסטינג':      {'מרגרינה':3.75,'גבינת שמנת':4.0,'אבקת סוכר':6.25},
+  'שוקולד':        {'מרגרינה':4.1,'קקאו':1.4,'סוכר לבן':7.0}
 };
 
-var INGR_CATEGORY = {
-  'baking': ['קמח','שמרים','אבקת סוכר','סוכר לבן'],
-  'sweet':  ['סוכר חום','קינמון','קקאו','תמצית וניל','תמצית לימון'],
-  'fat':    ['מרגרינה','גבינת שמנת']
+var INGR_CATEGORY={
+  'baking':['קמח','שמרים','אבקת סוכר','סוכר לבן'],
+  'sweet': ['סוכר חום','קינמון','קקאו','תמצית וניל','תמצית לימון'],
+  'fat':   ['מרגרינה','גבינת שמנת']
 };
 
-function fmt(n){ return '₪'+Math.round(n).toLocaleString('he-IL'); }
-function fmtKg(n){ return n>=1 ? n.toFixed(1)+' ק"ג' : Math.round(n*1000)+' גר\''; }
+function fmt(n){return '₪'+Math.round(n).toLocaleString('he-IL');}
+function fmtKg(n){return n>=1?n.toFixed(1)+' ק"ג':Math.round(n*1000)+' גר\'';}
 
 function calcIngr(log){
-  var totals = {};
-  log.forEach(function(entry){
-    var recipeKey = RECIPE_LABELS[entry.label];
-    if(!recipeKey) return;
-    var ingrs = INGR_PER_UNIT[recipeKey];
+  var totals={};
+  log.forEach(function(e){
+    var ingrs=INGR_PER_UNIT[e.label];
     if(!ingrs) return;
     Object.keys(ingrs).forEach(function(ing){
-      totals[ing] = (totals[ing]||0) + ingrs[ing] * entry.qty;
+      totals[ing]=(totals[ing]||0)+ingrs[ing]*e.qty;
     });
   });
   return totals;
 }
 
 function renderIngr(ingr){
-  ['baking','sweet','fat'].forEach(function(cat, i){
-    var id = ['ingr-baking','ingr-sweet','ingr-fat'][i];
-    var keys = INGR_CATEGORY[cat];
-    var rows = keys.filter(function(k){ return ingr[k] && ingr[k]>0; })
+  ['baking','sweet','fat'].forEach(function(cat,i){
+    var id=['ingr-baking','ingr-sweet','ingr-fat'][i];
+    var rows=INGR_CATEGORY[cat].filter(function(k){return ingr[k]&&ingr[k]>0;})
       .map(function(k){
-        return '<div class="ingr-row"><span class="ingr-name">'+k+'</span>'+
-          '<span class="ingr-kg">'+fmtKg(ingr[k])+'</span></div>';
+        return '<div class="ingr-row"><span>'+k+'</span><span class="ingr-kg">'+fmtKg(ingr[k])+'</span></div>';
       });
-    document.getElementById(id).innerHTML = rows.length>0 ?
-      rows.join('') : '<div class="empty">אין נתונים</div>';
+    document.getElementById(id).innerHTML=rows.length>0?rows.join(''):'<div class="empty">אין נתונים</div>';
   });
 }
 
 function renderChart(summary){
-  var entries = Object.entries(summary).sort(function(a,b){return b[1].cost-a[1].cost;});
-  if(entries.length===0){
-    document.getElementById('chart-area').innerHTML='<div class="empty">אין נתונים עדיין</div>';
-    return;
-  }
-  var max = entries[0][1].cost;
-  var html = entries.map(function(e,i){
-    var pct = Math.round(e[1].cost/max*100);
-    var color = COLORS[i%COLORS.length];
+  var entries=Object.entries(summary).sort(function(a,b){return b[1].cost-a[1].cost;});
+  if(!entries.length){document.getElementById('chart-area').innerHTML='<div class="empty">אין נתונים עדיין</div>';return;}
+  var max=entries[0][1].cost;
+  document.getElementById('chart-area').innerHTML=entries.map(function(e,i){
+    var pct=Math.round(e[1].cost/max*100);
+    var color=COLORS[i%COLORS.length];
     return '<div class="chart-bar-row">'+
       '<span class="chart-label">'+e[0]+'</span>'+
-      '<div class="chart-bar-outer">'+
-        '<div class="chart-bar-inner" style="width:'+pct+'%;background:'+color+'">'+
-          (pct>15?fmt(e[1].cost):'')+'</div>'+
-      '</div>'+
-      '<span style="font-size:11px;color:#888;min-width:50px;text-align:left;direction:ltr">'+
-        (pct<=15?fmt(e[1].cost):'')+'</span>'+
-    '</div>';
+      '<div class="chart-bar-outer"><div class="chart-bar-inner" style="width:'+pct+'%;background:'+color+'">'+
+        (pct>15?fmt(e[1].cost):'')+
+      '</div></div>'+
+      '<span style="font-size:11px;color:#888;min-width:55px;text-align:left;direction:ltr">'+
+        (pct<=15?fmt(e[1].cost):'')+
+      '</span></div>';
   }).join('');
-  document.getElementById('chart-area').innerHTML=html;
+}
+
+function loadMonths(){
+  fetch('/api/months?t='+Date.now()).then(function(r){return r.json();}).then(function(months){
+    var sel=document.getElementById('month-select');
+    var today=new Date();
+    var thisMonth=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
+    if(months.indexOf(thisMonth)===-1) months.unshift(thisMonth);
+    sel.innerHTML=months.map(function(m){
+      return '<option value="'+m+'"'+(m===currentMonth?' selected':'')+'>'+monthLabel(m)+'</option>';
+    }).join('');
+    if(!currentMonth && months.length>0){
+      currentMonth=months[0];
+      sel.value=currentMonth;
+    }
+  });
+}
+
+function changeMonth(){
+  currentMonth=document.getElementById('month-select').value;
+  loadData();
 }
 
 function loadData(){
+  if(!currentMonth){
+    var today=new Date();
+    currentMonth=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
+  }
   var t=Date.now();
   Promise.all([
-    fetch('/api/summary?t='+t).then(function(r){return r.json();}),
-    fetch('/api/log?t='+t).then(function(r){return r.json();})
+    fetch('/api/summary?month='+currentMonth+'&t='+t).then(function(r){return r.json();}),
+    fetch('/api/log?month='+currentMonth+'&t='+t).then(function(r){return r.json();})
   ]).then(function(results){
-    var summary=results[0], log=results[1];
-
+    var summary=results[0],log=results[1];
     var now=new Date();
     document.getElementById('last-update').textContent='עודכן: '+
       String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-
+    document.getElementById('kpi-month').textContent=monthLabel(currentMonth);
     var total=0;
     Object.values(summary).forEach(function(v){total+=v.cost;});
     document.getElementById('kpi-total').textContent=fmt(total);
     document.getElementById('kpi-count').textContent=log.length;
-
     var entries=Object.entries(summary).sort(function(a,b){return b[1].cost-a[1].cost;});
     document.getElementById('kpi-top').textContent=entries.length>0?entries[0][0]:'—';
-
-    if(log.length>0){
-      var last=log[log.length-1];
-      var lt=new Date(last.time);
-      document.getElementById('kpi-last').textContent=
-        String(lt.getHours()).padStart(2,'0')+':'+String(lt.getMinutes()).padStart(2,'0');
-    }
-
     renderChart(summary);
-
     var maxCost=entries.length>0?entries[0][1].cost:1;
     document.getElementById('item-list').innerHTML=entries.length>0?
       entries.map(function(e,i){
         var pct=Math.round(e[1].cost/maxCost*100);
-        return '<div class="item-row">'+
-          '<span class="item-name">'+e[0]+'</span>'+
+        return '<div class="item-row"><span class="item-name">'+e[0]+'</span>'+
           '<span class="item-qty">'+e[1].qty+' יח\'</span>'+
           '<div class="bar-wrap"><div class="bar" style="width:'+pct+'%;background:'+COLORS[i%COLORS.length]+'"></div></div>'+
           '<span class="item-cost">'+fmt(e[1].cost)+'</span></div>';
       }).join(''):'<div class="empty">אין נתונים עדיין</div>';
-
     document.getElementById('log-list').innerHTML=log.length>0?
-      log.slice().reverse().slice(0,12).map(function(l){
+      log.slice(0,12).map(function(l){
         var lt=new Date(l.time);
         var ts=String(lt.getHours()).padStart(2,'0')+':'+String(lt.getMinutes()).padStart(2,'0');
         return '<div class="log-row">'+
-          '<span class="log-who">'+l.from.replace('whatsapp:+972','05')+' '+ts+'</span>'+
+          '<span class="log-who">'+(l.from_number||'').replace('whatsapp:+972','05')+' '+ts+'</span>'+
           '<span class="log-what">'+l.label+' × '+l.qty+'</span>'+
           '<span class="log-cost">'+fmt(l.cost)+'</span></div>';
       }).join(''):'<div class="empty">אין נתונים עדיין</div>';
-
-    var ingr = calcIngr(log);
-    renderIngr(ingr);
-
+    renderIngr(calcIngr(log));
+    loadMonths();
   }).catch(function(){
     document.getElementById('footer').textContent='שגיאה בטעינה – בדוק חיבור';
   });
 }
 
 function resetData(){
-  if(!confirm('למחוק את כל הנתונים של החודש?'))return;
-  fetch('/api/reset',{method:'POST'}).then(function(){loadData();});
+  if(!confirm('למחוק את כל נתוני '+monthLabel(currentMonth)+'?')) return;
+  fetch('/api/reset?month='+currentMonth,{method:'POST'}).then(function(){loadData();});
 }
 
 loadData();
