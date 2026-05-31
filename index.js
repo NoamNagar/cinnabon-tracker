@@ -13,14 +13,14 @@ const RECIPES = {
 };
 
 const UNITS = {
-  'קרמל':          { label: 'בקבוק קרמל',      price: 24.96 },
-  'פקאן':          { label: 'פקאן 10 קג',       price: 635 },
-  'פסיפלורה':      { label: 'מונין פסיפלורה',  price: 88 },
-  'מנגו':          { label: 'מונין מנגו',       price: 69.81 },
-  'תות':           { label: 'מונין תות',        price: 60.68 },
-  'שמנת':          { label: 'שמנת מתוקה 42%',  price: 41 },
-  'קפה':           { label: 'שקית קפה',         price: 78 },
-  'שוקולד בקבוק':  { label: 'בקבוק שוקולד',    price: 30.27 },
+  'קרמל':         { label: 'בקבוק קרמל',     price: 24.96 },
+  'פקאן':         { label: 'פקאן 10 קג',      price: 635 },
+  'פסיפלורה':     { label: 'מונין פסיפלורה', price: 88 },
+  'מנגו':         { label: 'מונין מנגו',      price: 69.81 },
+  'תות':          { label: 'מונין תות',       price: 60.68 },
+  'שמנת':         { label: 'שמנת מתוקה 42%', price: 41 },
+  'קפה':          { label: 'שקית קפה',        price: 78 },
+  'שוקולד בקבוק': { label: 'בקבוק שוקולד',   price: 30.27 },
 };
 
 let log = [];
@@ -61,6 +61,7 @@ app.post('/webhook', (req, res) => {
 });
 
 app.get('/log', (req, res) => res.json(log));
+app.post('/reset', (req, res) => { log = []; res.json({ ok: true }); });
 
 app.get('/summary', (req, res) => {
   const summary = {};
