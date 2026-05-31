@@ -1,24 +1,26 @@
 const express = require('express');
+const path = require('path');
 const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 const RECIPES = {
-  'בצק':      { label: 'הכנת בצק',        costPerUnit: 177.82 },
-  'קינמון':   { label: 'תערובת קינמון',   costPerUnit: 141.06 },
-  'פרוסטינג': { label: 'פרוסטינג',        costPerUnit: 187.72 },
-  'שוקולד':   { label: 'שוקולד',           costPerUnit: 142.24 },
+  'בצק':      { label: 'הכנת בצק',       costPerUnit: 177.82 },
+  'קינמון':   { label: 'תערובת קינמון',  costPerUnit: 141.06 },
+  'פרוסטינג': { label: 'פרוסטינג',       costPerUnit: 187.72 },
+  'שוקולד':   { label: 'שוקולד',          costPerUnit: 142.24 },
 };
 
 const UNITS = {
-  'קרמל':       { label: 'בקבוק קרמל',      price: 24.96 },
-  'שוקולד בקבוק':{ label: 'בקבוק שוקולד',   price: 30.27 },
-  'פקאן':       { label: 'פקאן 10 קג',       price: 635 },
-  'פסיפלורה':   { label: 'מונין פסיפלורה',   price: 88 },
-  'מנגו':       { label: 'מונין מנגו',        price: 69.81 },
-  'תות':        { label: 'מונין תות',         price: 60.68 },
-  'שמנת':       { label: 'שמנת מתוקה 42%',   price: 41 },
-  'קפה':        { label: 'שקית קפה',          price: 78 },
+  'קרמל':          { label: 'בקבוק קרמל',      price: 24.96 },
+  'פקאן':          { label: 'פקאן 10 קג',       price: 635 },
+  'פסיפלורה':      { label: 'מונין פסיפלורה',  price: 88 },
+  'מנגו':          { label: 'מונין מנגו',       price: 69.81 },
+  'תות':           { label: 'מונין תות',        price: 60.68 },
+  'שמנת':          { label: 'שמנת מתוקה 42%',  price: 41 },
+  'קפה':           { label: 'שקית קפה',         price: 78 },
+  'שוקולד בקבוק':  { label: 'בקבוק שוקולד',    price: 30.27 },
 };
 
 let log = [];
@@ -27,7 +29,6 @@ app.post('/webhook', (req, res) => {
   const body = req.body.Body || '';
   const from = req.body.From || '';
   const text = body.trim();
-
   const nums = text.replace(/[^\d]/g, '');
   const qty = parseInt(nums) || 1;
 
@@ -49,7 +50,6 @@ app.post('/webhook', (req, res) => {
     const label = found.type === 'recipe'
       ? RECIPES[found.key].label
       : UNITS[found.key].label;
-
     log.push({ from, text, label, qty: found.qty, cost, time: new Date().toISOString() });
     reply = `✅ נרשם: ${label} × ${found.qty} = ${Math.round(cost)} ₪`;
   } else {
@@ -72,7 +72,7 @@ app.get('/summary', (req, res) => {
   res.json(summary);
 });
 
-app.get('/', (req, res) => res.send('Cinnabon Tracker פועל!'));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
