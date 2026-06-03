@@ -34,11 +34,9 @@ async function initDB() {
       price_per_unit NUMERIC DEFAULT 0
     )
   `);
-  // הכנסת פריטים ברירת מחדל אם הטבלה ריקה
   const check = await pool.query('SELECT COUNT(*) FROM inventory');
   if (parseInt(check.rows[0].count) === 0) {
     const items = [
-      // פריטים ביחידות
       ['בקבוק קרמל',     'יחידה', 0, 3,  24.96],
       ['בקבוק שוקולד',   'יחידה', 0, 3,  30.27],
       ['מונין פסיפלורה', 'יחידה', 0, 2,  88.00],
@@ -47,7 +45,6 @@ async function initDB() {
       ['שמנת מתוקה 42%', 'יחידה', 0, 3,  41.00],
       ['שקית קפה',       'יחידה', 0, 2,  78.00],
       ['פקאן 10 קג',     'יחידה', 0, 1, 635.00],
-      // חומרי גלם בק"ג
       ['קמח',            'ק"ג',   0, 50,  1.35],
       ['אבקת סוכר',      'ק"ג',   0, 20,  0.28],
       ['קינמון',         'ק"ג',   0, 5,   3.30],
@@ -77,13 +74,13 @@ const RECIPES = {
 
 const UNITS = {
   'קרמל':         { label: 'בקבוק קרמל',     price: 24.96, inventoryName: 'בקבוק קרמל',     inventoryQty: 1 },
-  'פקאן':         { label: 'פקאן 10 קג',      price: 635,   inventoryName: 'פקאן 10 קג',     inventoryQty: 1 },
+  'בקבוק שוקולד': { label: 'בקבוק שוקולד',   price: 30.27, inventoryName: 'בקבוק שוקולד',   inventoryQty: 1 },
+  'פקאן':         { label: 'פקאן 10 קג',      price: 635,   inventoryName: 'פקאן 10 קג',      inventoryQty: 1 },
   'פסיפלורה':     { label: 'מונין פסיפלורה', price: 88,    inventoryName: 'מונין פסיפלורה', inventoryQty: 1 },
-  'מנגו':         { label: 'מונין מנגו',      price: 69.81, inventoryName: 'מונין מנגו',     inventoryQty: 1 },
-  'תות':          { label: 'מונין תות',       price: 60.68, inventoryName: 'מונין תות',      inventoryQty: 1 },
+  'מנגו':         { label: 'מונין מנגו',      price: 69.81, inventoryName: 'מונין מנגו',      inventoryQty: 1 },
+  'תות':          { label: 'מונין תות',       price: 60.68, inventoryName: 'מונין תות',       inventoryQty: 1 },
   'שמנת':         { label: 'שמנת מתוקה 42%', price: 41,    inventoryName: 'שמנת מתוקה 42%', inventoryQty: 1 },
-  'קפה':          { label: 'שקית קפה',        price: 78,    inventoryName: 'שקית קפה',       inventoryQty: 1 },
-  'שוקולד בקבוק': { label: 'בקבוק שוקולד',   price: 30.27, inventoryName: 'בקבוק שוקולד',  inventoryQty: 1 },
+  'קפה':          { label: 'שקית קפה',        price: 78,    inventoryName: 'שקית קפה',        inventoryQty: 1 },
 };
 
 const RECIPE_INGREDIENTS = {
@@ -102,20 +99,30 @@ function getMonth() {
 async function sendWhatsAppAlert(message) {
   try {
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const authToken  = process.env.TWILIO_AUTH_TOKEN;
     const fromNumber = process.env.TWILIO_FROM_NUMBER;
-    const toNumber = 'whatsapp:+972544968864';
-    if (!accountSid || !authToken) return;
-    const body = `To=${encodeURIComponent(toNumber)}&From=${encodeURIComponent(fromNumber)}&Body=${encodeURIComponent(message)}`;
-    await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64')
-      },
-      body
-    });
-  } catch(e) { console.error('WhatsApp alert error:', e); }
+    const toNumber   = 'whatsapp:+972544968864';
+    if (!accountSid || !authToken || !fromNumber) {
+      console.log('Twilio credentials missing');
+      return;
+    }
+    const bodyStr = `To=${encodeURIComponent(toNumber)}&From=${encodeURIComponent(fromNumber)}&Body=${encodeURIComponent(message)}`;
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64')
+        },
+        body: bodyStr
+      }
+    );
+    const result = await response.json();
+    console.log('WhatsApp alert sent:', result.sid || result.message);
+  } catch(e) {
+    console.error('WhatsApp alert error:', e);
+  }
 }
 
 async function deductInventory(label, qty) {
@@ -132,7 +139,7 @@ async function deductInventory(label, qty) {
       if (res.rows.length > 0) {
         const item = res.rows[0];
         if (parseFloat(item.quantity) <= parseFloat(item.alert_threshold)) {
-          alerts.push(`⚠️ מלאי נמוך: ${item.name} – נשאר ${parseFloat(item.quantity).toFixed(1)} ${item.unit} (סף התראה: ${item.alert_threshold})`);
+          alerts.push(`⚠️ ${item.name} – נשאר ${parseFloat(item.quantity).toFixed(1)} ${item.unit}`);
         }
       }
     }
@@ -147,7 +154,7 @@ async function deductInventory(label, qty) {
         if (res.rows.length > 0) {
           const item = res.rows[0];
           if (parseFloat(item.quantity) <= parseFloat(item.alert_threshold)) {
-            alerts.push(`⚠️ מלאי נמוך: ${item.name} – נשאר ${parseFloat(item.quantity).toFixed(1)} ${item.unit} (סף התראה: ${item.alert_threshold})`);
+            alerts.push(`⚠️ ${item.name} – נשאר ${parseFloat(item.quantity).toFixed(1)} ${item.unit}`);
           }
         }
         break;
@@ -156,7 +163,7 @@ async function deductInventory(label, qty) {
   }
   if (alerts.length > 0) {
     const msg = '🔴 התראת מלאי – סינבון\n\n' + alerts.join('\n');
-    sendWhatsAppAlert(msg);
+    await sendWhatsAppAlert(msg);
   }
 }
 
@@ -165,21 +172,33 @@ app.post('/webhook', async (req, res) => {
   const from = req.body.From || '';
   const text = body.trim();
   const nums = text.replace(/[^\d]/g, '');
-  const qty = parseInt(nums) || 1;
+  const qty  = parseInt(nums) || 1;
 
   let found = null;
+
+  // בדיקת מתכונים קודם
   for (const k in RECIPES) {
-    if (text.includes(k)) { found = { key: k, type: 'recipe', qty }; break; }
+    if (text.includes(k) && !text.includes('בקבוק')) {
+      found = { key: k, type: 'recipe', qty };
+      break;
+    }
   }
+
+  // בדיקת יחידות
   if (!found) {
-    for (const k in UNITS) {
-      if (text.includes(k)) { found = { key: k, type: 'unit', qty }; break; }
+    // בקבוק שוקולד קודם (כדי לא להתבלבל עם שוקולד)
+    const unitKeys = Object.keys(UNITS).sort((a,b) => b.length - a.length);
+    for (const k of unitKeys) {
+      if (text.includes(k)) {
+        found = { key: k, type: 'unit', qty };
+        break;
+      }
     }
   }
 
   let reply = '';
   if (found) {
-    const cost = found.type === 'recipe'
+    const cost  = found.type === 'recipe'
       ? found.qty * RECIPES[found.key].costPerUnit
       : found.qty * UNITS[found.key].price;
     const label = found.type === 'recipe'
@@ -193,7 +212,7 @@ app.post('/webhook', async (req, res) => {
     await deductInventory(label, found.qty);
     reply = `✅ נרשם: ${label} × ${found.qty}`;
   } else {
-    reply = `❌ לא זיהיתי. נסה: "בצק 2", "קינמון 1", "קרמל 3", "קפה 2"`;
+    reply = `❌ לא זיהיתי. נסה: "בצק 2", "קינמון 1", "קרמל 3", "קפה 2", "בקבוק שוקולד 1"`;
   }
 
   res.set('Content-Type', 'text/xml');
@@ -247,6 +266,12 @@ app.post('/api/inventory/add', async (req, res) => {
     'INSERT INTO inventory (name, unit, quantity, alert_threshold, price_per_unit) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (name) DO UPDATE SET quantity=$3, alert_threshold=$4, price_per_unit=$5',
     [name, unit, quantity || 0, alert_threshold || 0, price_per_unit || 0]
   );
+  res.json({ ok: true });
+});
+
+app.delete('/api/events/:id', async (req, res) => {
+  const { id } = req.params;
+  await pool.query('DELETE FROM events WHERE id=$1', [id]);
   res.json({ ok: true });
 });
 
